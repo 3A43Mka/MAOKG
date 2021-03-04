@@ -38,7 +38,7 @@ public class Skeleton extends JPanel implements ActionListener {
 
 		Dimension size = frame.getSize();
 		Insets insets = frame.getInsets();
-		width = size.width - insets.left - insets.right - 10;
+		width = size.width - insets.left - insets.right - 1;
 		height = size.height - insets.top - insets.bottom - 1;
 	}
 
