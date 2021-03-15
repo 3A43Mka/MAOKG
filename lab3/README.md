@@ -6,7 +6,7 @@
 
 ## Результат:
 
-![result image](lab3demo1.gif)
+![resultimage](lab3demo1.gif)
 
 ## Код програми:
 
