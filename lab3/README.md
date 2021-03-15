@@ -11,7 +11,7 @@
 ## Код програми:
 
 ```java
-package application;
+package lab3;
 
 import javafx.animation.*;
 import javafx.application.Application;
@@ -24,20 +24,19 @@ import javafx.scene.paint.Stop;
 import javafx.scene.shape.*;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import lab3.bmp.HeaderBitmapImage;
+import lab3.bmp.ReadingHeaderFromBitmapImage;
 
-public class Main extends Application {
-	public static void main(String args[]) {
-		launch(args);
-	}
+import java.io.*;
 
-	@Override
-	public void start(Stage primaryStage) {
+public class Apple extends Application {
 
-		Group root = new Group();
-		Scene scene = new Scene(root, 1000, 600);
-		////////////////////////////
+    @Override
+    public void start(Stage primaryStage) throws IOException {
+        Group root = new Group();
+        Scene scene = new Scene(root, 600, 400);
 
-		Path backLeaf = new Path(new MoveTo(200, 50), new QuadCurveTo(220, 20, 260, 40),
+        Path backLeaf = new Path(new MoveTo(200, 50), new QuadCurveTo(220, 20, 260, 40),
 				new QuadCurveTo(290, 60, 320, 30), new QuadCurveTo(315, 80, 280, 100));
 
 		LinearGradient backLeafGradient = new LinearGradient(0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
@@ -265,45 +264,135 @@ public class Main extends Application {
 		root.getChildren().add(touch3);
 		root.getChildren().add(touch4);
 
-		// Animation
-		int cycleCount = 2; //
-		int time = 2000;
+        //Animation
 
-		ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(time), root);
-		scaleTransition.setToX(2);
-		scaleTransition.setToY(2);
-		scaleTransition.setCycleCount(cycleCount);
-		scaleTransition.setAutoReverse(true);
+        int time = 3;
 
-		TranslateTransition translateTransition = new TranslateTransition(Duration.millis(time), root);
-		translateTransition.setFromX(50);
-		translateTransition.setToX(650);
-		translateTransition.setFromY(40);
-		translateTransition.setToY(310);
-		translateTransition.setCycleCount(cycleCount + 2);
-		translateTransition.setAutoReverse(true);
+        RotateTransition rotateTransition = new RotateTransition(Duration.seconds(time));
+        rotateTransition.setByAngle(-90);
 
-		RotateTransition rotateTransition = new RotateTransition(Duration.millis(time), root);
-		rotateTransition.setByAngle(-130f);
-		rotateTransition.setCycleCount(cycleCount);
-		rotateTransition.setAutoReverse(true);
+        ScaleTransition scaleTransition = new ScaleTransition(Duration.seconds(time), root);
+        scaleTransition.setToX(0.1);
+        scaleTransition.setToY(0.1);
 
-		ScaleTransition scaleTransition2 = new ScaleTransition(Duration.millis(time), root);
-		scaleTransition2.setToX(0.2);
-		scaleTransition2.setToY(0.2);
-		scaleTransition2.setCycleCount(cycleCount);
-		scaleTransition2.setAutoReverse(true);
+        PathTransition pathTransition = new PathTransition(Duration.seconds(time), getTrajectoryPath(), root);
 
-		ParallelTransition parallelTransition = new ParallelTransition();
-		parallelTransition.getChildren().addAll(translateTransition, scaleTransition, rotateTransition,
-				scaleTransition2);
+        ParallelTransition parallelTransition = new ParallelTransition(root);
+        parallelTransition.getChildren().addAll(scaleTransition, rotateTransition, pathTransition);
+        parallelTransition.setCycleCount(Animation.INDEFINITE);
+        parallelTransition.setAutoReverse(true);
+        parallelTransition.play();
 
-		parallelTransition.setCycleCount(Timeline.INDEFINITE);
-		parallelTransition.play();
+        primaryStage.setResizable(false);
+        primaryStage.setTitle("Lab3");
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
 
-		primaryStage.setTitle("Lab3");
-		primaryStage.setScene(scene);
-		primaryStage.show();
-	}
+    private Path getTrajectoryPath() throws IOException {
+        int numberOfPixels = 0;
+
+        FileInputStream fileInputStream = new FileInputStream("./sources/path.bmp");
+        BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
+        HeaderBitmapImage image = new ReadingHeaderFromBitmapImage().Reading(bufferedInputStream);
+        int width = (int) image.getWidth();
+        int height = (int) image.getHeight();
+        int half = (int) image.getHalfOfWidth();
+
+        int let, let1, let2;
+        char[][] map = new char[width][height];
+
+        BufferedInputStream reader = new BufferedInputStream(new FileInputStream("pixels.txt"));
+
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < half; j++) {
+                let = reader.read();
+                let1 = (let & (0xf0)) >> 4;
+                let2 = let & (0x0f);
+                if (j * 2 < width) {
+                    if (returnPixelColor(let1).equals("BLACK")) {
+                        map[j * 2][height - 1 - i] = '1';
+                        numberOfPixels++;
+                    } else {
+                        map[j * 2][height - 1 - i] = '0';
+                    }
+                }
+                if (j * 2 + 1 < width) {
+                    if (returnPixelColor(let2).equals("BLACK")) {
+                        map[j * 2 + 1][height - 1 - i] = '1';
+                        numberOfPixels++;
+                    } else {
+                        map[j * 2 + 1][height - 1 - i] = '0';
+                    }
+                }
+            }
+        }
+        reader.close();
+
+        int[][] black = new int[numberOfPixels][2];
+        int lich = 0;
+
+        BufferedOutputStream writer = new BufferedOutputStream(new FileOutputStream("map.txt"));
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                if (map[j][i] == '1') {
+                    black[lich][0] = j;
+                    black[lich][1] = i;
+                    lich++;
+                }
+                writer.write(map[j][i]);
+            }
+            writer.write(10);
+        }
+        writer.close();
+
+        System.out.println("number of black color pixels = " + numberOfPixels);
+
+        Path path = new Path();
+        for (int l = 0; l < numberOfPixels - 1; l++) {
+            path.getElements().addAll(new MoveTo(black[l][0], black[l][1]), new LineTo(black[l + 1][0], black[l + 1][1])
+            );
+        }
+        return path;
+    }
+
+    private String returnPixelColor(int color) {
+        String col = "BLACK";
+        switch (color) {
+            case 0:
+                return "BLACK";     //BLACK;
+            case 1:
+                return "LIGHTCORAL";  //LIGHTCORAL;
+            case 2:
+                return "GREEN";     //GREEN
+            case 3:
+                return "BROWN";     //BROWN
+            case 4:
+                return "BLUE";      //BLUE;
+            case 5:
+                return "MAGENTA";   //MAGENTA;
+            case 6:
+                return "CYAN";      //CYAN;
+            case 7:
+                return "LIGHTGRAY"; //LIGHTGRAY;
+            case 8:
+                return "DARKGRAY";  //DARKGRAY;
+            case 9:
+                return "RED";       //RED;
+            case 10:
+                return "LIGHTGREEN";//LIGHTGREEN
+            case 11:
+                return "YELLOW";    //YELLOW;
+            case 12:
+                return "LIGHTBLUE"; //LIGHTBLUE;
+            case 13:
+                return "LIGHTPINK";    //LIGHTMAGENTA
+            case 14:
+                return "LIGHTCYAN";    //LIGHTCYAN;
+            case 15:
+                return "WHITE";    //WHITE;
+        }
+        return col;
+    }
 }
 ```
